@@ -1,15 +1,15 @@
 import { Outlet } from 'react-router-dom';
-import Header from '../organisms/Header.jsx';
-import Footer from '../organisms/Footer.jsx';
+import NavBar from '../organisms/NavBar/NavBar';
+import Footer from '../organisms/Footer/Footer';
 
-const Layout = () => (
-  <div className="min-h-screen">
-    <Header />
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <Outlet />
-    </main>
-    <Footer />
-  </div>
-);
-
-export default Layout;
+export default function Layout() {
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <NavBar />
+      <main className="flex-1 w-full">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}

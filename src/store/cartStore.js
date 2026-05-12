@@ -1,75 +1,93 @@
-import { create } from 'zustand';
-import { getLocalItem, setLocalItem } from '../utils/storage.js';
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-const TAX_RATE = 0.19;
-const initialCart = getLocalItem('cart', []);
+const STORAGE_KEY = "template-cart-store";
 
-const normalizeCartItem = (item) => {
-  let normalizedStock = 10;
+const useCartStore = create(
+  persist(
+    (set, get) => ({
+      items: [],
 
-  if (item.stock !== undefined && item.stock !== null) {
-    normalizedStock = Number(item.stock);
-  } else if (item.rating?.count !== undefined && item.rating?.count !== null) {
-    normalizedStock = Number(item.rating.count);
-  }
+      addItem: (product, quantity = 1) => {
+        const parsedQuantity = Math.max(1, Number(quantity) || 1);
+        const existing = get().items.find(
+          (item) => Number(item.product.id) === Number(product.id),
+        );
 
-  return {
-    ...item,
-    price: Number(item.price) || 0,
-    quantity: Math.max(1, Number(item.quantity) || 1),
-    stock: normalizedStock,
-  };
-};
+        if (existing) {
+          set({
+            items: get().items.map((item) =>
+              Number(item.product.id) === Number(product.id)
+                ? { ...item, quantity: item.quantity + parsedQuantity }
+                : item,
+            ),
+          });
+          return;
+        }
 
-const getStock = (product) => {
-  if (product.stock != null) return Number(product.stock);
-  if (product.rating?.count != null) return Number(product.rating.count);
-  return 10;
-};
+        set({ items: [...get().items, { product, quantity: parsedQuantity }] });
+      },
 
-export const useCartStore = create((set, get) => ({
-  items: initialCart.map(normalizeCartItem),
-  addItem: (product) => {
-    const normalizedProduct = normalizeCartItem(product);
-    const stock = getStock(normalizedProduct);
-    const existing = get().items.find((item) => item.id === normalizedProduct.id);
-    const updatedItems = existing
-      ? get().items.map((item) =>
-          item.id === normalizedProduct.id
-            ? { ...item, quantity: Math.min(item.quantity + 1, stock) }
-            : item
-        )
-      : [...get().items, { ...normalizedProduct, quantity: 1 }];
-    set(() => ({ items: updatedItems }));
-    setLocalItem('cart', updatedItems);
-  },
-  removeItem: (id) => {
-    const updatedItems = get().items.filter((item) => item.id !== id);
-    set(() => ({ items: updatedItems }));
-    setLocalItem('cart', updatedItems);
-  },
-  updateQuantity: (id, quantity) => {
-    const updatedItems = get().items
-      .map((item) => {
-        if (item.id !== id) return item;
-        const stock = getStock(item);
-        return { ...item, quantity: Math.max(1, Math.min(Number(quantity) || 1, stock)) };
-      })
-      .filter((item) => item.quantity > 0);
-    set(() => ({ items: updatedItems }));
-    setLocalItem('cart', updatedItems);
-  },
-  clearCart: () => {
-    set(() => ({ items: [] }));
-    setLocalItem('cart', []);
-  },
-  get subtotal() {
-    return get().items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
-  },
-  get tax() {
-    return Number.parseFloat((get().subtotal * TAX_RATE).toFixed(2)) || 0;
-  },
-  get total() {
-    return Number.parseFloat((get().subtotal + get().tax).toFixed(2)) || 0;
-  },
-}));
+      updateItemQuantity: (id, quantity) => {
+        const parsedQuantity = Number(quantity) || 0;
+        if (parsedQuantity <= 0) {
+          set({
+            items: get().items.filter(
+              (item) => Number(item.product.id) !== Number(id),
+            ),
+          });
+          return;
+        }
+
+        set({
+          items: get().items.map((item) =>
+            Number(item.product.id) === Number(id)
+              ? { ...item, quantity: parsedQuantity }
+              : item,
+          ),
+        });
+      },
+
+      incrementItem: (id) => {
+        const item = get().items.find(
+          (cartItem) => Number(cartItem.product.id) === Number(id),
+        );
+        if (!item) return;
+        get().updateItemQuantity(id, item.quantity + 1);
+      },
+
+      decrementItem: (id) => {
+        const item = get().items.find(
+          (cartItem) => Number(cartItem.product.id) === Number(id),
+        );
+        if (!item) return;
+        get().updateItemQuantity(id, item.quantity - 1);
+      },
+
+      removeItem: (id) => {
+        set({
+          items: get().items.filter(
+            (item) => Number(item.product.id) !== Number(id),
+          ),
+        });
+      },
+
+      clearCart: () => set({ items: [] }),
+
+      getTotalItems: () =>
+        get().items.reduce((sum, item) => sum + Number(item.quantity), 0),
+
+      getTotalPrice: () =>
+        get().items.reduce(
+          (sum, item) => sum + Number(item.product.price) * Number(item.quantity),
+          0,
+        ),
+    }),
+    {
+      name: STORAGE_KEY,
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
+
+export default useCartStore;

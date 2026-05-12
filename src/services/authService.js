@@ -1,98 +1,104 @@
-import { mockUsers } from '../mockdata/users.js';
+import MOCK_USERS from "../mockdata/mock_users";
 
-const USER_KEY = 'users';
-const CURRENT_USER_KEY = 'currentUser';
+const REGISTERED_USERS_KEY = "registeredUsers";
+const LOGGED_IN_USER_KEY = "loggedInUser";
 
-const getStoredUsers = () => {
+const mapUserShape = (user) => ({
+  uid: String(user.id ?? Date.now()),
+  displayName: user.name,
+  name: user.name,
+  email: user.email,
+  cellphone: user.cellphone ?? "",
+  address: user.address ?? "",
+  emailVerified: true,
+});
+
+const getRegisteredUsers = () => {
   try {
-    const raw = window.localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : [...mockUsers];
+    return JSON.parse(localStorage.getItem(REGISTERED_USERS_KEY) || "[]");
   } catch {
-    return [...mockUsers];
+    return [];
   }
 };
 
-const saveUsers = (users) => {
-  window.localStorage.setItem(USER_KEY, JSON.stringify(users));
-};
-
-export const getCurrentUser = () => {
+const getCurrentUser = () => {
   try {
-    const raw = window.localStorage.getItem(CURRENT_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return JSON.parse(localStorage.getItem(LOGGED_IN_USER_KEY) || "null");
   } catch {
     return null;
   }
 };
 
-export const setCurrentUser = (user) => {
-  window.localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+const notifyAuthChange = () => {
+  window.dispatchEvent(new Event("template-auth-change"));
 };
 
-export const clearCurrentUser = () => {
-  window.localStorage.removeItem(CURRENT_USER_KEY);
-};
+export const subscribeToAuthChanges = (callback) => {
+  const handler = () => callback(getCurrentUser());
+  handler();
+  window.addEventListener("storage", handler);
+  window.addEventListener("template-auth-change", handler);
 
-export const loginUser = async ({ email, password }) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const users = getStoredUsers();
-  const user = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase() && entry.password === password);
-
-  if (!user) {
-    throw new Error('Credenciales inválidas. Verifica tu email y contraseña.');
-  }
-
-  const currentUser = { id: user.id, name: user.name, email: user.email };
-  setCurrentUser(currentUser);
-  return currentUser;
-};
-
-export const registerUser = async ({ name, email, password }) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const users = getStoredUsers();
-  const exists = users.some((entry) => entry.email.toLowerCase() === email.toLowerCase());
-  if (exists) {
-    throw new Error('Ya existe un usuario con este correo.');
-  }
-
-  const nextUser = {
-    id: users.length + 1,
-    name,
-    email,
-    password,
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener("template-auth-change", handler);
   };
-
-  const updatedUsers = [...users, nextUser];
-  saveUsers(updatedUsers);
-
-  const currentUser = { id: nextUser.id, name: nextUser.name, email: nextUser.email };
-  setCurrentUser(currentUser);
-  return currentUser;
 };
 
-export const updateUserProfile = async ({ id, name, email }) => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  if (!name.trim() || !email.trim()) {
-    throw new Error('Nombre y correo son obligatorios.');
-  }
-
-  const users = getStoredUsers();
-  const existing = users.find((entry) => entry.id === id);
-  if (!existing) {
-    throw new Error('Usuario no encontrado.');
-  }
-
-  const duplicated = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase() && entry.id !== id);
-  if (duplicated) {
-    throw new Error('Este correo ya está registrado en otra cuenta.');
-  }
-
-  const updatedUsers = users.map((entry) =>
-    entry.id === id ? { ...entry, name, email } : entry
+export const loginUser = async (email, password) => {
+  // TODO ESTUDIANTE:
+  // Si cambias a backend real, valida credenciales por API y maneja token/sesion.
+  const registeredUsers = getRegisteredUsers();
+  const allUsers = [...MOCK_USERS, ...registeredUsers];
+  const foundUser = allUsers.find(
+    (user) => user.email === email && user.password === password,
   );
 
-  saveUsers(updatedUsers);
-  const updatedUser = { id, name, email };
-  setCurrentUser(updatedUser);
-  return updatedUser;
+  if (!foundUser) {
+    return { success: false, error: "Correo o contraseña incorrectos" };
+  }
+
+  const normalizedUser = mapUserShape(foundUser);
+  localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(normalizedUser));
+  notifyAuthChange();
+
+  return { success: true, user: normalizedUser };
+};
+
+export const registerFullUser = async (userData) => {
+  // TODO ESTUDIANTE:
+  // Agrega validaciones de formulario mas robustas (longitud, formato, etc).
+  const registeredUsers = getRegisteredUsers();
+  const allUsers = [...MOCK_USERS, ...registeredUsers];
+  const emailExists = allUsers.some(
+    (user) => user.email.toLowerCase() === userData.email.toLowerCase(),
+  );
+
+  if (emailExists) {
+    return { success: false, error: "El email ya está registrado." };
+  }
+
+  const newUser = {
+    id: Date.now(),
+    name: userData.name,
+    email: userData.email,
+    cellphone: userData.cellphone ?? "",
+    address: userData.address ?? "",
+    password: userData.password,
+  };
+
+  localStorage.setItem(
+    REGISTERED_USERS_KEY,
+    JSON.stringify([...registeredUsers, newUser]),
+  );
+
+  return { success: true, user: mapUserShape(newUser) };
+};
+
+export const logoutUser = async () => {
+  // TODO ESTUDIANTE:
+  // Si usas backend real, invalida token/sesion en servidor aqui.
+  localStorage.removeItem(LOGGED_IN_USER_KEY);
+  notifyAuthChange();
+  return { success: true };
 };
