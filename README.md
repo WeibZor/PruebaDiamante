@@ -1,4 +1,4 @@
-# 🛒 Nexora Store — Modern E-commerce Platform
+# 🛒 Neyndra Ecommerce — Modern E-commerce Platform
 
 Aplicación E-commerce moderna desarrollada con React + Vite + Tailwind CSS + Zustand, enfocada en arquitectura escalable, experiencia de usuario profesional y despliegue en GitHub Pages.
 
