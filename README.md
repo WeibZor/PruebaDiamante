@@ -152,6 +152,76 @@ Abre `http://localhost:5173` en tu navegador.
 - Commit 34: Preparación para deploy
 - Commit 35: Deploy final del proyecto
 
+## Deployment en GitHub Pages
+
+### Requisitos previos
+1. Tener Git instalado
+2. Tener una cuenta en GitHub
+3. Tener Node.js v16+ instalado
+
+### Pasos para desplegar
+
+#### 1. Instalar gh-pages (ya incluido en devDependencies)
+```bash
+npm install
+```
+
+#### 2. Compilar la aplicación para producción
+```bash
+npm run build
+```
+
+#### 3. Desplegar en GitHub Pages
+```bash
+npm run deploy
+```
+
+La aplicación se publicará en: `https://weibzor.github.io/Fullstack-Challenge---E-commerce/`
+
+### Configuración automática incluida
+
+El proyecto ya está configurado correctamente para GitHub Pages:
+
+- ✅ **Vite base path**: `/Fullstack-Challenge---E-commerce/`
+- ✅ **HashRouter**: Usa URLs con `#` para navegación SPA sin servidor
+- ✅ **package.json homepage**: Configurado con la URL correcta
+- ✅ **Scripts de deploy**: `predeploy` y `deploy` incluidos
+- ✅ **Archivo .nojekyll**: Previene procesamiento de Jekyll
+- ✅ **Archivo 404.html**: Maneja errores de rutas SPA
+
+### Solución de problemas
+
+**Problema**: Página en blanco o error 404
+- ✅ Solución: Cambio de BrowserRouter a HashRouter
+
+**Problema**: Assets no cargan correctamente
+- ✅ Solución: Base path configurado en vite.config.js
+
+**Problema**: Las rutas no funcionan después del refresh
+- ✅ Solución: HashRouter permite URLs tipo `/#/ruta` sin necesidad de servidor
+
+**Problema**: Faltan módulos npm
+- ✅ Solución: Instalar gh-pages: `npm install gh-pages --save-dev`
+
+### Flujo de deployment completo
+
+```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Desarrollo local
+npm run dev
+
+# 3. Compilar para producción
+npm run build
+
+# 4. Previsualizar build local
+npm run preview
+
+# 5. Desplegar en GitHub Pages
+npm run deploy
+```
+
 ## Notas finales
 
 - El proyecto utiliza FakeStore API como fuente principal de datos.

@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import App from './App.jsx';
 import './index.css';
@@ -65,10 +65,10 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <Suspense fallback={<LoadingFallback />}>
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <HashRouter>
           <App />
           <Toaster position="top-right" richColors />
-        </BrowserRouter>
+        </HashRouter>
       </Suspense>
     </ErrorBoundary>
   </React.StrictMode>
